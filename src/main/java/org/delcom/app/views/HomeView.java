@@ -1,8 +1,7 @@
 package org.delcom.app.views;
 
-import org.delcom.app.dto.TodoForm;
 import org.delcom.app.entities.User;
-import org.delcom.app.services.TodoService;
+import org.delcom.app.services.CashFlowService;
 import org.delcom.app.utils.ConstUtil;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -14,10 +13,10 @@ import org.springframework.web.bind.annotation.GetMapping;
 @Controller
 public class HomeView {
 
-    private final TodoService todoService;
+    private final CashFlowService cashFlowService;
 
-    public HomeView(TodoService todoService) {
-        this.todoService = todoService;
+    public HomeView(CashFlowService cashFlowService) {
+        this.cashFlowService = cashFlowService;
     }
 
     @GetMapping
@@ -35,12 +34,19 @@ public class HomeView {
         User authUser = (User) principal;
         model.addAttribute("auth", authUser);
 
-        // Todos
-        var todos = todoService.getAllTodos(authUser.getId(), "");
-        model.addAttribute("todos", todos);
+        // CashFlow
+        var cashFlows = cashFlowService.getAllCashFlows(authUser.getId(), "");
+        model.addAttribute("cashFlows", cashFlows);
 
-        // Todo Form
-        model.addAttribute("todoForm", new TodoForm());
+        int totalIn = cashFlows.stream().filter(c -> "CASH_IN".equals(c.getType()))
+                .mapToInt(c -> c.getAmount()).sum();
+
+        int totalOut = cashFlows.stream().filter(c -> "CASH_OUT".equals(c.getType()))
+                .mapToInt(c -> c.getAmount()).sum();
+
+        model.addAttribute("totalIn", totalIn);
+        model.addAttribute("totalOut", totalOut);
+        model.addAttribute("balance", totalIn - totalOut);
 
         return ConstUtil.TEMPLATE_PAGES_HOME;
     }
